@@ -14,7 +14,7 @@ class Comparing:
         self._is_at_same_step = False
         self._pooled = False  # if walls reached
         self._position_bias = 0.36
-        self._cursor = 0
+        self._cursor_cache = 0
         self._answer = userActions.ERROR
         self.wall_left, self.wall_right = 0, 0
 
@@ -51,18 +51,19 @@ class Comparing:
 
     def cursor(self, position_override=-1):
         if self._is_at_same_step:
-            return self._cursor
+            return self._cursor_cache
         else:
             if position_override < 0:
-                position_override = 1 if self._answer == userActions.RIGHT_TO else 0 - self._position_bias
+                position_override = 1 - self._position_bias if self._answer == userActions.RIGHT_TO \
+                    else self._position_bias
             new_cursor_position = int((self.wall_right - self.wall_left) * position_override)
             new_cursor_position = 1 if new_cursor_position < 1 else new_cursor_position
             if self._answer == userActions.RIGHT_TO:
-                if new_cursor_position <= self._cursor:
-                    new_cursor_position += max(1, self._cursor)
+                if new_cursor_position <= self._cursor_cache:
+                    new_cursor_position += max(1, self._cursor_cache)
             else:
-                new_cursor_position -= max(1, self._cursor)
-            self._cursor = new_cursor_position
+                new_cursor_position -= max(1, self._cursor_cache)
+            self._cursor_cache = new_cursor_position
             self._is_at_same_step = True
             return new_cursor_position
 
@@ -89,6 +90,7 @@ class Comparing:
         if self._print_hints:
             print(" (get_response) Wall left {:2}, cursor {:2},                              right wall {:2}".format(
                 self.wall_left, self.cursor(), self.wall_right))
+        # TODO: check if already ranked @ 1x1 table and act accordingly
         print("(-<) {0} << {1} >> {0} (>+)".format(self.item_moving(), self.item_against()))
         self._answer = userActions.LEFT_TO if get_char_normal_input() == 'a' else userActions.RIGHT_TO
 
@@ -131,6 +133,7 @@ class Comparing:
 
     def exit_signed(self):
         return self._quit_signal
+
 
 if __name__ == '__main__':
     to_do_list = ['8', '4', '7', '5', '2', '0']
