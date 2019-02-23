@@ -21,24 +21,22 @@ class Comparator(Singleton):
       https://python-3-patterns-idioms-test.readthedocs.io/en/latest/Singleton.html
     """
 
-    intellij_ways = True
+    intellij_ways = False
+    exit_sign = False
     t = Texts()  # also: 'English' (default), 'pt-br'
     moving, against = None, None
     user_input = None
 
-    def __init__(self):
-        Singleton.__init__(self)  # keep Singleton functionality intact
-        #  TODO: check -- may be unneeded if Database already acts as should
-        self.__start()
-
-    def __start(self):
+    def __init__(self, new_list=None, partial_ordered_list=None):
         """ first: prepare database. if not found: ask for first list
             second: if work ongoing found: offer to continue or create new list (main options)
             third, offer full options: continue, backup/import, manage and change lists, results or items and axis """
-        self.database = Singleton.database()
-        self.database.sanitize_parameters(method='init')
+        Singleton.__init__(self)  # keep Singleton functionality intact
+        #  TODO: check -- may be unneeded if Database already acts as should
+
+        self.database = Singleton.database(new_list, partial_ordered_list)
+        self.database.sanitize_parameters(method='init')  # unnecessary?
         # self.new_list_options()  # TODO: if user wants instead of step-ping in
-        self.do_step()
 
     def new_list_options(self):
         """ offer to batch load txt files, present preview and confirmation...
@@ -51,32 +49,37 @@ class Comparator(Singleton):
         if self.list_completed():
             self.__quit()  # TODO: maybe better to present options to new list, view results etc.
 
-        while True:  # this loop is for nailing down rank order in between moving walls TODO: belongs inside Database
-            self.database.sanitize_parameters()
-            if not self.database.has_no_walls_space():
-                print('no? wall space reached!')
-                return
-            else:
-                self.user_input = userActions.ERROR  # always reset to avoid looping with first answer
-                self.moving, self.against = self.database.get_current_items()
+        # while True:  # this loop is for nailing down rank order in between moving walls TODO: belongs inside Database
 
-                while self.user_input in (userActions.ERROR, userActions.GROUP):
-                    if self.user_input == userActions.GROUP:
-                        groups_available = None  # TODO: get list
-                        if groups_available is None:
-                            new_group = self.request_user_input_long('Enter new group (or tag) for item ' + self.moving)
-                            self.database.group(new_group, [self.moving])
-                        else:
-                            self.database.group(self.group_select(), [self.moving])
+        # self.database.sanitize_parameters()  # now at rank's end
+        # if not self.database.has_no_walls_space():
+        #     print('no? wall space reached!')
+        #     return
+        # else:
+        self.user_input = userActions.ERROR  # always reset to avoid looping with first answer
+        if self.database.still_has_work_todo():
+            self.moving, self.against = self.database.get_current_items()
+        else:
+            self.__quit()  # or TODO: present options
 
-                    self.present_work_step()
-
-                if self.user_input == userActions.QUIT:
-                    self.__quit()
+        while self.user_input in (userActions.ERROR, userActions.GROUP):
+            if self.user_input == userActions.GROUP:
+                groups_available = None  # TODO: get list
+                if groups_available is None:
+                    new_group = self.request_user_input_long('Enter new group (or tag) for item ' + self.moving)
+                    self.database.group(new_group, [self.moving])
                 else:
-                    self.database.proceed(self.user_input, [self.moving, self.against])
+                    self.database.group(self.group_select(), [self.moving])
 
-            # print(self.t.put('COMMAND', self.user_input))
+            self.present_work_step()
+
+        if self.user_input == userActions.QUIT:
+            self.__quit()
+        else:
+            self.database.proceed(self.user_input, [self.moving, self.against])
+
+        # print(self.t.put('COMMAND', self.user_input))
+
         self.database.sanitize_parameters(method='Full')
 
     def present_work_step(self):
@@ -85,7 +88,7 @@ class Comparator(Singleton):
         normal option: single moving x against single
         TODO: multiple x multiple (~= puzzle move) """
         if self.intellij_ways:
-            print(f"(-<) {self.moving} << {self.against} >> {self.moving} (>+) ", end='')  # must be comm if py 3.4-
+            # print(f"(-<) {self.moving} << {self.against} >> {self.moving} (>+) ", end='')  # must be comm if py 3.4-
             pass
         else:
             print("(-<) {0} << {1} >> {0} (>+)".format(self.moving, self.against))
@@ -128,11 +131,19 @@ class Comparator(Singleton):
     def list_completed(self):
         return False  # TODO: check if list is fully (or enough*) ranked. *maybe at another func?
 
+    def exit_signed(self):
+        return self.exit_sign
+
     def __quit(self):
+        self.exit_sign = True
         self.database.show_results()
-        exit()  # TODO: clean up and tidy database etc.
+        # exit()  # TODO: clean up and tidy database etc.
 
 
 if __name__ == '__main__':
     # print(Comparator() is Comparator())  # DEBUG, must equal because of Singleton
-    comparator = Comparator()
+    comparator = Comparator(['8', '4', '7', '5', '2', '0'], ['1', '3', '6', '9'])
+    while True:
+        comparator.do_step()
+        if comparator.exit_signed():
+            break  # TODO: missing… <- /lock trash zone etc. -> + ver gKeep

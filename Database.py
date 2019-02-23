@@ -1,6 +1,7 @@
 import os
 from Configs.UserActions import userActions, possible_answers
 from Configs.config import file_ending
+from Comparing import *  # TODO: implement coupling
 
 
 class Database:
@@ -24,13 +25,14 @@ class Database:
     cursor = 0  # tracking where it is at
     moving_direction = userActions.ERROR
     step_multiplier = 0.27
-    current_list_name = "DB/testListA"
 
-    def __init__(self):
-        self.current_list_file = self._load_file_option()
-        self.current_unordered_list = self.set_current_list()
-        self.current_ordered_list = []
-        self.ordered_equals_list = {}
+    current_list_file = "DB/testListA"  # TODO: make less hacky self.current_list_file
+
+    def __init__(self, new_list=None, partial_ordered_list=None):
+        # self.current_list_file = self._load_file_option() if new_list is None else new_list
+        self.current_unordered_list = self.set_current_list() if new_list is None else new_list
+        self.current_ordered_list = [] if partial_ordered_list is None else partial_ordered_list
+        self.ordered_equals_list = {}  # TODO: partial_load also?
 
     def get_current_list(self):
         return self.current_unordered_list
@@ -59,9 +61,6 @@ class Database:
         except IOError as e:
             print(e)  # TODO: totally new run: create list or batch read, move file etc.
 
-    def _load_file_option(self):
-        return self.current_list_name
-
     def _is_new_list(self):
         if self.current_ordered_list.__len__() > 0:
             return False
@@ -82,25 +81,27 @@ class Database:
         if self._is_new_list():
             return  # TODO: maybe call restore state in here ?
         else:
-            print('in "', method, end='" sanitize. ')
+            # print('in "', method, end='" sanitize. ')
             if method.lower() == 'default':  # TODO: CURRENTLY DOING IT TO MAKE IT WORK, no other place uses CURSOR
+
                 if self.moving_direction == userActions.LEFT_TO:
                     self.wall_left, self.wall_right = self.wall_left, self.cursor
-                    self.cursor *= self.step_multiplier
+                    # self.cursor *= self.step_multiplier
                 elif self.moving_direction == userActions.RIGHT_TO:
                     self.wall_left, self.wall_right = self.cursor, self.wall_right
-                    self.cursor *= (1 + self.step_multiplier)
+                    # self.cursor *= (1 + self.step_multiplier)
                 else:
                     pass
-                self.cursor = int(self.cursor)
-            elif method.lower() == 'init':
-                return  # TODO: maybe call restore state here also ?
-            elif method.lower() == 'full':
-                self.wall_left, self.wall_right = 0, self.current_ordered_list.__len__() - 1
+                # self.cursor = int(self.cursor)
+                self._get_item_at_position()
+
+            elif method.lower() in ['full', 'init']:
+                self.wall_left, self.wall_right = 0, self.current_ordered_list.__len__()
             else:
-                print("Error on sanitize_parameters call")
-                self.wall_left, self.wall_right = -1, 0  # TODO: no use? Error? wtf?
-                raise Exception
+                print("New entry type or Error on sanitize_parameters() call")
+                # self.wall_left, self.wall_right = -1, 0  # TODO: no use? Error? wtf?
+                self.wall_left, self.wall_right = 0, self.current_ordered_list.__len__()
+                # raise Exception
         print('sanitizing or not: ', self.wall_left, self.cursor, self.wall_right)
 
     def has_no_walls_space(self):
@@ -110,9 +111,14 @@ class Database:
         return False
 
     def _get_item_at_position(self, position=step_multiplier):
-        pos = self.current_ordered_list[int(position * self.current_ordered_list.__len__())]
-        self.cursor = pos
-        return pos
+        walled_space = self.wall_right - self.wall_left
+        walled_aiming = walled_space * position
+        walled_aiming += self.wall_left
+        get_pos = int(walled_aiming)
+        # get_pos = int(position * self.current_ordered_list.__len__())
+        item = self.current_ordered_list[get_pos]
+        # self.cursor = pos
+        return item
 
     def get_current_items(self):
         """ items = moving, against """
@@ -124,6 +130,9 @@ class Database:
             print(self.current_unordered_list, ' <-ToDo ; N/item-> ', self._get_item_at_position(),
                   self.current_ordered_list)
             return self.current_unordered_list.pop(), self._get_item_at_position()
+
+    def still_has_work_todo(self):
+        return self.current_unordered_list.__len__() > 0
 
     def user_choice_check(self, answer):
         """ check and return based on enum @ UserActions.py """
@@ -159,16 +168,20 @@ class Database:
         """ continues shuffling or reach walls and commit saving
         ALSO: Save at 1x1 table etc. """
         # TODO: save @ 1x1 table
-        print("in rank_item: ", item, pos, '>' if action == userActions.RIGHT_TO else '<', end='')
+        # print("in rank_item: ", item, pos, '>' if action == userActions.RIGHT_TO else '<', end='')
         if self.has_no_walls_space():
-            print('. no wall space, saving...', end='')
+            # print('. no wall space, saving...', end='')
             self.current_ordered_list.insert(pos + 1 if action == userActions.RIGHT_TO else 0,
-                                             item)  # TODO: deal when having more than one item
-        print('.')
+                                             item)  # TODO: deal when having more than one item -- NOT HERE? always 1
+            # TODO: save DBComparison 1x1 here
+            # self.sanitize_parameters(method='between')
+        # else:
+        self.sanitize_parameters()  # move walls span (halve or something) method='walls' / cursor / move
+        # print('.')
 
     def index_most(self, direction, items_to_search):
         print(items_to_search, 'searched, "inserting(?)" ', 'left' if direction == userActions.LEFT_TO else 'right')
-        print('current ordered list: ', self.current_ordered_list)
+        print('over "', self._get_item_at_position(), '" current ordered list: ', self.current_ordered_list)
         if direction == userActions.LEFT_TO:
             left_most = self.current_ordered_list.index(items_to_search[0])
             if left_most < self.wall_left:
@@ -187,10 +200,11 @@ class Database:
         """ this should call the main shuffling algorithm depending on answer given.
          OBS: grouping/tagging and quitting made @ Comparator.main ...all else here
          the main algorithm for putting things in rank order place """
+        self.moving_direction = 0
         if process in (userActions.LEFT_TO, userActions.RIGHT_TO):
-            self.cursor = self.index_most(process, items[1:])
             self.moving_direction = process
-            self.rank_item(items[0], self.index_most(process, items[1:]), process)
+            self.cursor = self.index_most(process, items[1:])  # TODO: currently HERE!
+            self.rank_item(items[0], self.cursor, process)
         elif process == userActions.EQUAL_TO:
             print(items, 'UNDONE: first is equal to the other (must be only one)')
         # TODO: later:

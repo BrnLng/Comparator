@@ -1,3 +1,19 @@
+list = [1, 2, 3, 4, 5, 6]
+print(list.__len__())
+
+# from multiOsHelpers.get_user_input import get_char_normal_input
+#
+#
+# bogus_list = {1, 2, 3, 4, 5, 6}
+# ranked_list = []
+#
+# item_a = bogus_list.pop()
+# while bogus_list.__len__() > 0:
+#     item_b = bogus_list.pop()
+#
+#     print("(-<) {0} << {1} >> {0} (>+)".format(item_b, item_a))
+#     answer = get_char_normal_input()
+
 # from Configs.UserActions import possible_answers
 #
 #
@@ -16,22 +32,22 @@
 # print(all_answers)
 # print(answers_set)
 
-import kivy
-from kivy.app import App
-from kivy.uix.button import Button
-
-kivy.require('1.0.7')
-
-
-class TestsApp(App):
-
-    def build(self):
-        # return a Button() as a root widget
-        return Button(text='hello world')
-
-
-if __name__ == '__main__':
-    TestsApp().run()
+# import kivy
+# from kivy.app import App
+# from kivy.uix.button import Button
+#
+# kivy.require('1.0.7')
+#
+#
+# class TestsApp(App):
+#
+#     def build(self):
+#         # return a Button() as a root widget
+#         return Button(text='hello world')
+#
+#
+# if __name__ == '__main__':
+#     TestsApp().run()
 
 # # from pprint import pprint
 # # pprint(possible_answers)
