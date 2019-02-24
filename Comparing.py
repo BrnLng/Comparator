@@ -107,7 +107,7 @@ class Comparing:
 
     def rank(self):
         """pseudoCodeVersion userChoice(bool isAOverB, itemA, itemB, fixedListWhereItemBIs)"""
-        # saving only self._answer won't work because a set does not save order
+        # saving only self._answer won'texts work because a set does not save order
         self.db_1x1[frozenset([self.item_moving(), self.list_ordered[self.cursor()]])] = \
             self.list_ordered[self.cursor()] if self._answer == userActions.LEFT_TO else self.item_moving()
         if self.has_wall_space():

@@ -4,6 +4,7 @@ from Configs.internationalizable_texts import Texts
 from Configs.UserActions import userActions, possible_answers
 from Singleton import Singleton
 from multiOsHelpers.get_user_input import *
+from Comparing import Comparing  # TODO: implement coupling
 
 
 class Comparator(Singleton):
@@ -21,12 +22,6 @@ class Comparator(Singleton):
       https://python-3-patterns-idioms-test.readthedocs.io/en/latest/Singleton.html
     """
 
-    intellij_ways = False
-    exit_sign = False
-    t = Texts()  # also: 'English' (default), 'pt-br'
-    moving, against = None, None
-    user_input = None
-
     def __init__(self, new_list=None, partial_ordered_list=None):
         """ first: prepare database. if not found: ask for first list
             second: if work ongoing found: offer to continue or create new list (main options)
@@ -34,84 +29,76 @@ class Comparator(Singleton):
         Singleton.__init__(self)  # keep Singleton functionality intact
         #  TODO: check -- may be unneeded if Database already acts as should
 
-        self.database = Singleton.database(new_list, partial_ordered_list)
-        self.database.sanitize_parameters(method='init')  # unnecessary?
+        self.database = Singleton.database()
+        self.comparing = Comparing(new_list, partial_ordered_list)
+        self.texts = Texts()  # also: 'English' (default), 'pt-br'
+
+        self.intellij_ways = True
+        self.exit_sign = False
+        self.user_input = None
+        # self.database.sanitize_parameters(method='init')  # unnecessary?
         # self.new_list_options()  # TODO: if user wants instead of step-ping in
 
-    def new_list_options(self):
-        """ offer to batch load txt files, present preview and confirmation...
-        each item may be trashed or found as duplication on this stage already """
-        pass
-
-    def do_step(self):
+    # def do_step(self):
         """ some behind the scene work , then present options and
         separate front-ends: tty/terminal/CLI or kivy TODO: kivy front end """
         if self.list_completed():
             self.__quit()  # TODO: maybe better to present options to new list, view results etc.
 
-        # while True:  # this loop is for nailing down rank order in between moving walls TODO: belongs inside Database
-
-        # self.database.sanitize_parameters()  # now at rank's end
-        # if not self.database.has_no_walls_space():
-        #     print('no? wall space reached!')
-        #     return
-        # else:
         self.user_input = userActions.ERROR  # always reset to avoid looping with first answer
-        if self.database.still_has_work_todo():
-            self.moving, self.against = self.database.get_current_items()
-        else:
-            self.__quit()  # or TODO: present options
 
         while self.user_input in (userActions.ERROR, userActions.GROUP):
             if self.user_input == userActions.GROUP:
-                groups_available = None  # TODO: get list
+                groups_available = None  # TODO: get groups list (trash in here too)
                 if groups_available is None:
                     new_group = self.request_user_input_long('Enter new group (or tag) for item ' + self.moving)
                     self.database.group(new_group, [self.moving])
                 else:
                     self.database.group(self.group_select(), [self.moving])
 
-            self.present_work_step()
+            while not self.comparing.exit_signed():
+                self.present_work_step()
 
         if self.user_input == userActions.QUIT:
             self.__quit()
         else:
-            self.database.proceed(self.user_input, [self.moving, self.against])
+            self.comparing.do_step()  # pass .answer?
 
-        # print(self.t.put('COMMAND', self.user_input))
+        # print(self.texts.put('COMMAND', self.user_input))
+        # self.database.sanitize_parameters(method='Full')
 
-        self.database.sanitize_parameters(method='Full')
+    def new_list_options(self):
+        """ offer to batch load txt files, present preview and confirmation...
+        each item may be trashed or found as duplication on this stage already """
+        pass
 
     def present_work_step(self):
         """ present options for user to
         compare or group in (new or already used) axis
         normal option: single moving x against single
         TODO: multiple x multiple (~= puzzle move) """
-        if self.intellij_ways:
-            # print(f"(-<) {self.moving} << {self.against} >> {self.moving} (>+) ", end='')  # must be comm if py 3.4-
-            pass
-        else:
-            print("(-<) {0} << {1} >> {0} (>+)".format(self.moving, self.against))
-        answer = self.database.user_choice_check(self.request_user_input())
+        print("(-<) {0} << {1} >> {0} (>+)".format(
+            self.comparing.item_moving(), self.comparing.item_against()), end='')
+        answer = self.user_choice_check(self.request_user_input())
         # if answer in (userActions.LEFT_TO, userActions.RIGHT_TO, userActions.EQUAL_TO):
-        #     print(self.t.put('MOVE'))
+        #     print(self.texts.put('MOVE'))
         # elif answer in (userActions.DELETE, userActions.DUPLICATED):
-        #     print(self.t.put('TRASH'))
+        #     print(self.texts.put('TRASH'))
         # elif answer == userActions.GROUP:
-        #     print(self.t.put('GROUP'))
+        #     print(self.texts.put('GROUP'))
         # elif answer == userActions.QUIT:
-        #     print(self.t.put('QUIT'))
+        #     print(self.texts.put('QUIT'))
         # else:
         #     if answer == userActions.ERROR:
-        #         print(self.t.put('IERROR'))
+        #         print(self.texts.put('IERROR'))
         #         for k, v in possible_answers.items():
-        #             print("{:>10}: {}".format(self.t.put('COMMAND', k).lower().capitalize(), v))
+        #             print("{:>10}: {}".format(self.texts.put('COMMAND', k).lower().capitalize(), v))
         #     else:
-        #         print(self.t.put('WERROR') + str(answer) + "]")
+        #         print(self.texts.put('WERROR') + str(answer) + "]")
         if answer == userActions.ERROR:
-            print(self.t.put('IERROR'))
+            print(self.texts.put('IERROR'))
             for k, v in possible_answers.items():
-                print("{:>10}: {}".format(self.t.put('COMMAND', k).lower().capitalize(), v))
+                print("{:>10}: {}".format(self.texts.put('COMMAND', k).lower().capitalize(), v))
         self.user_input = answer
 
     def request_user_input(self):
@@ -124,6 +111,35 @@ class Comparator(Singleton):
 
     def request_user_input_long(self, prompt=''):
         return input(prompt)
+
+    def user_choice_check(self, answer):
+        """ check and return based on enum @ UserActions.py """
+        # if answer in possible_answers.values(): return userActions[key]  # TODO: try something expansible like this
+        if answer in possible_answers[userActions.LEFT_TO]:
+            # print('<-')
+            return userActions.LEFT_TO
+        elif answer in possible_answers[userActions.RIGHT_TO]:
+            # print('+>')
+            return userActions.RIGHT_TO
+        elif answer in possible_answers[userActions.EQUAL_TO]:
+            # print('<=> (auto group @ level ...ask?)')  # TODO: ask level identifier (~=axis) or auto group possible?
+            return userActions.EQUAL_TO
+        elif answer in possible_answers[userActions.DELETE]:
+            # print('entry will be trashed (recoverable)')
+            return userActions.DELETE
+        elif answer in possible_answers[userActions.DUPLICATED]:
+            # print('entry will be archived (as duplication and equal)')
+            return userActions.DUPLICATED
+        elif answer in possible_answers[userActions.GROUP]:
+            # print('entry will be tagged and may or not be ranked now')
+            return userActions.GROUP
+        elif answer in possible_answers[userActions.QUIT]:
+            return userActions.QUIT
+        else:
+            return userActions.ERROR
+
+    def get_1x1_db(self):
+        return self.comparing.get_1x1_db()
 
     def group_select(self):
         pass
@@ -142,8 +158,8 @@ class Comparator(Singleton):
 
 if __name__ == '__main__':
     # print(Comparator() is Comparator())  # DEBUG, must equal because of Singleton
-    comparator = Comparator(['8', '4', '7', '5', '2', '0'], ['1', '3', '6', '9'])
-    while True:
-        comparator.do_step()
-        if comparator.exit_signed():
-            break  # TODO: missing… <- /lock trash zone etc. -> + ver gKeep
+    to_do_list = ['8', '4', '7', '5', '2', '0']
+    done_list = ['1', '3', '6', '9']
+    comparator = Comparator(to_do_list, done_list)
+    print("Ranked: ", done_list)
+    print(comparator.get_1x1_db())  # TODO: missing… <- /lock trash zone etc. -> + ver gKeep
