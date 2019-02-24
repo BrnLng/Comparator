@@ -43,7 +43,7 @@ class Comparing:
     def has_wall_space(self):
         """ True if cursor has travel space or else False """
         bool_response = False if (self.wall_right - self.wall_left) <= 1 else True  # TODO: check +1 keep?
-        bool_response = False if self._answer == userActions.LEFT_TO and self.cursor() <= self.wall_left + 1 \
+        bool_response = False if self._answer == userActions.LEFT_TO and self.cursor() < self.wall_left + 1 \
             else bool_response
         bool_response = False if self._answer == userActions.RIGHT_TO and self.cursor() >= self.wall_right \
             else bool_response
@@ -61,8 +61,12 @@ class Comparing:
             if self._answer == userActions.RIGHT_TO:
                 if new_cursor_position <= self._cursor_cache:
                     new_cursor_position += max(1, self._cursor_cache)
+                    if new_cursor_position > self.wall_right:
+                        new_cursor_position = self.wall_right
             else:
                 new_cursor_position -= max(1, self._cursor_cache)
+                if new_cursor_position < self.wall_left:
+                    new_cursor_position = self.wall_left
             self._cursor_cache = new_cursor_position
             self._is_at_same_step = True
             return new_cursor_position
@@ -95,9 +99,9 @@ class Comparing:
         self._answer = userActions.LEFT_TO if get_char_normal_input() == 'a' else userActions.RIGHT_TO
 
     def rank_item(self, position_modifier=0):
-        self.list_ordered.insert(self.cursor() + position_modifier, self.item_moving(pop=True))
         if self._print_hints:
             print(">>item saved<<")
+        self.list_ordered.insert(self.cursor() + position_modifier, self.item_moving(pop=True))
 
     def rank(self):
         """pseudoCodeVersion userChoice(bool isAOverB, itemA, itemB, fixedListWhereItemBIs)"""
