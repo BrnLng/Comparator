@@ -18,6 +18,7 @@ class Comparing:
         self._answer = userActions.ERROR
         self.wall_left, self.wall_right = 0, 0
 
+        self.db_1x1 = {}
         self.list_unordered = [] if list_working is None else list_working
         self.list_ordered = [] if list_organized is None else list_organized
         self.walls_reset()
@@ -42,7 +43,7 @@ class Comparing:
 
     def has_wall_space(self):
         """ True if cursor has travel space or else False """
-        bool_response = False if (self.wall_right - self.wall_left) <= 1 else True  # TODO: check +1 keep?
+        bool_response = False if (self.wall_right - self.wall_left) <= 1 else True
         bool_response = False if self._answer == userActions.LEFT_TO and self.cursor() < self.wall_left + 1 \
             else bool_response
         bool_response = False if self._answer == userActions.RIGHT_TO and self.cursor() >= self.wall_right \
@@ -91,20 +92,31 @@ class Comparing:
         if not self._hint_displayed:
             print("SUPPORT VERSION: use ONLY a or * for answering <- or -> (* = anything else)")
             self._hint_displayed = True
-        if self._print_hints:
-            print(" (get_response) Wall left {:2}, cursor {:2},                              right wall {:2}".format(
-                self.wall_left, self.cursor(), self.wall_right))
+        # if self._print_hints:
+        #     print(" (get_response) Wall left {:2}, cursor {:2},                              right wall {:2}".format(
+        #         self.wall_left, self.cursor(), self.wall_right))
         # TODO: check if already ranked @ 1x1 table and act accordingly
-        print("(-<) {0} << {1} >> {0} (>+)".format(self.item_moving(), self.item_against()))
-        self._answer = userActions.LEFT_TO if get_char_normal_input() == 'a' else userActions.RIGHT_TO
+        item_moving, item_against = self.item_moving(), self.item_against()
+        try:
+            right_to_if_ranked_already = self.db_1x1[frozenset([item_moving, item_against])]
+            # self._answer = right_to_if_ranked_already  # TODO: get answer from right_most of set
+            self._answer = userActions.RIGHT_TO if right_to_if_ranked_already == item_moving else userActions.LEFT_TO
+            print("(answer already taken) ", self._answer, right_to_if_ranked_already)
+        except KeyError:
+            print("(-<) {0} << {1} >> {0} (>+)".format(item_moving, item_against))
+            self._answer = userActions.LEFT_TO if get_char_normal_input() == 'a' else userActions.RIGHT_TO
 
     def rank_item(self, position_modifier=0):
         if self._print_hints:
             print(">>item saved<<")
-        self.list_ordered.insert(self.cursor() + position_modifier, self.item_moving(pop=True))
+        item_to_save = self.item_moving(pop=True)
+        self.list_ordered.insert(self.cursor() + position_modifier, item_to_save)
 
     def rank(self):
         """pseudoCodeVersion userChoice(bool isAOverB, itemA, itemB, fixedListWhereItemBIs)"""
+        # saving only self._answer won't work because a set does not save order
+        self.db_1x1[frozenset([self.item_moving(), self.list_ordered[self.cursor()]])] = \
+            self.list_ordered[self.cursor()] if self._answer == userActions.LEFT_TO else self.item_moving()
         if self.has_wall_space():
             if self._answer == userActions.LEFT_TO:
                 self.wall_right = self.cursor()
@@ -113,22 +125,25 @@ class Comparing:
         else:
             self.rank_item(1 if self._answer == userActions.RIGHT_TO else 0)
             self._pooled = True  # ball in the machine
-            # saveDBComparison(etc)  # TODO: db comp 1x1 save and sanitize needed or decouple able?
             self.walls_reset()
-        self.sanity_check()
+    #     self.sanity_check()
+    #
+    # def sanity_check(self):
+    #     # if self._print_hints:
+    #     #     print("(before sanity) Wall left {:2}, cursor {:2},                              right wall {:2}".
+    #     #         format(self.wall_left, self.cursor(), self.wall_right))
+    #     wall_space = self.wall_right - self.wall_left
+    #     point_space = wall_space + self.wall_left
+    #     if self._print_hints:
+    #         print(" (after sanity) Wall left {:2}, cursor {:2}, pointSpace {:2}, wallSpace {:2}, "
+    #               "right wall {:2}".format(self.wall_left, self.cursor(), point_space, wall_space, self.wall_right))
+    #         # DONE: clean this space mess. it seems only to 'preview' when an answer has already been given
+    #     if point_space < self.wall_left or point_space > self.wall_right:
+    #         print("(sanity error)")
+    #         self._quit_signal = True
 
-    def sanity_check(self):
-        if self._print_hints:
-            print("(before sanity) Wall left {:2}, cursor {:2},                              right wall {:2}".format(
-                self.wall_left, self.cursor(), self.wall_right))
-        wall_space = self.wall_right - self.wall_left
-        point_space = wall_space + self.wall_left
-        if self._print_hints:
-            print(" (after sanity) Wall left {:2}, cursor {:2}, pointSpace {:2}, wallSpace {:2}, "
-                  "right wall {:2}".format(self.wall_left, self.cursor(), point_space, wall_space, self.wall_right))
-        if point_space < self.wall_left or point_space > self.wall_right:
-            print("(sanity error)")
-            self._quit_signal = True
+    def print_db(self):
+        print(self.db_1x1)
 
     def is_list_finished(self):
         if len(self.list_unordered) < 1:
@@ -149,3 +164,4 @@ if __name__ == '__main__':
         print(" Still to rank: ", to_do_list, "…\nAlready ranked: ", done_list)
         to_do_list, done_list = comparator.do_step()
     print("Ranked: ", done_list)
+    comparator.print_db()
