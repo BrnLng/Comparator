@@ -1,8 +1,6 @@
 from multiOsHelpers.get_user_input import *
 from Configs.UserActions import userActions
 
-# TODO: make a stand-alone module, than plug it into Database
-
 
 class Comparing:
     """ will be used @ Database to decouple this ranking part algorithm  TODO: will enable unittests """
@@ -10,9 +8,9 @@ class Comparing:
     def __init__(self, list_working=None, list_organized=None):
         self._quit_signal = False
         self._hint_displayed = False
-        self._print_hints = True  # TODO: check if is still needed
         self._is_at_same_step = False
         self._pooled = False  # if walls reached
+        # self._print_hints = True  # DONE: check if is still needed
         self._position_bias = 0.36
         self._cursor_cache = 0
         self._answer = userActions.ERROR
@@ -75,8 +73,8 @@ class Comparing:
     def item_moving(self, pos=0, pop=False):
         if pop:
             if len(self.list_unordered) == 1:
-                if self._print_hints:
-                    print("Everything ranked! Quitting…")
+                # if self._print_hints:
+                #     print("Everything ranked! Quitting…")
                 self._quit_signal = True
             return self.list_unordered.pop(pos)
         else:
@@ -92,23 +90,18 @@ class Comparing:
         if not self._hint_displayed:
             print("SUPPORT VERSION: use ONLY a or * for answering <- or -> (* = anything else)")
             self._hint_displayed = True
-        # if self._print_hints:
-        #     print(" (get_response) Wall left {:2}, cursor {:2},                              right wall {:2}".format(
-        #         self.wall_left, self.cursor(), self.wall_right))
-        # TODO: check if already ranked @ 1x1 table and act accordingly
         item_moving, item_against = self.item_moving(), self.item_against()
         try:
             right_to_if_ranked_already = self.db_1x1[frozenset([item_moving, item_against])]
-            # self._answer = right_to_if_ranked_already  # TODO: get answer from right_most of set
             self._answer = userActions.RIGHT_TO if right_to_if_ranked_already == item_moving else userActions.LEFT_TO
-            print("(answer already taken) ", self._answer, right_to_if_ranked_already)
+            # print("(answer already taken) ", self._answer, right_to_if_ranked_already)
         except KeyError:
             print("(-<) {0} << {1} >> {0} (>+)".format(item_moving, item_against))
             self._answer = userActions.LEFT_TO if get_char_normal_input() == 'a' else userActions.RIGHT_TO
 
     def rank_item(self, position_modifier=0):
-        if self._print_hints:
-            print(">>item saved<<")
+        # if self._print_hints:
+        #     print(">>item saved<<")
         item_to_save = self.item_moving(pop=True)
         self.list_ordered.insert(self.cursor() + position_modifier, item_to_save)
 
@@ -126,24 +119,9 @@ class Comparing:
             self.rank_item(1 if self._answer == userActions.RIGHT_TO else 0)
             self._pooled = True  # ball in the machine
             self.walls_reset()
-    #     self.sanity_check()
-    #
-    # def sanity_check(self):
-    #     # if self._print_hints:
-    #     #     print("(before sanity) Wall left {:2}, cursor {:2},                              right wall {:2}".
-    #     #         format(self.wall_left, self.cursor(), self.wall_right))
-    #     wall_space = self.wall_right - self.wall_left
-    #     point_space = wall_space + self.wall_left
-    #     if self._print_hints:
-    #         print(" (after sanity) Wall left {:2}, cursor {:2}, pointSpace {:2}, wallSpace {:2}, "
-    #               "right wall {:2}".format(self.wall_left, self.cursor(), point_space, wall_space, self.wall_right))
-    #         # DONE: clean this space mess. it seems only to 'preview' when an answer has already been given
-    #     if point_space < self.wall_left or point_space > self.wall_right:
-    #         print("(sanity error)")
-    #         self._quit_signal = True
 
-    def print_db(self):
-        print(self.db_1x1)
+    def get_1x1_db(self):
+        return self.db_1x1
 
     def is_list_finished(self):
         if len(self.list_unordered) < 1:
@@ -158,10 +136,8 @@ if __name__ == '__main__':
     to_do_list = ['8', '4', '7', '5', '2', '0']
     done_list = ['1', '3', '6', '9']
     comparator = Comparing(to_do_list, done_list)
-    while True:  # TODO: make this loop totally internal to call
-        if comparator.exit_signed():
-            break
-        print(" Still to rank: ", to_do_list, "…\nAlready ranked: ", done_list)
+    while not comparator.exit_signed():
+        # print(" Still to rank: ", to_do_list, "…\nAlready ranked: ", done_list)
         to_do_list, done_list = comparator.do_step()
     print("Ranked: ", done_list)
-    comparator.print_db()
+    print(comparator.get_1x1_db())
