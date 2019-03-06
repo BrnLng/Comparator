@@ -19,9 +19,14 @@ class Comparator(Singleton):
       5-star += hate {0} & super love OR new super (S2^3 // *6)
     OBS: think it needs to be a singleton, because of DB/data... or a Borg as seen here:
       https://python-3-patterns-idioms-test.readthedocs.io/en/latest/Singleton.html
+
+      TODO: log from gKeep: * make in between wall moving edit like form unnacepted review html...
+                send and keep current state until accepted
+        * edit item @ base (late item edit)
+        * review equals [ @ top ranked only ? ]
     """
 
-    intellij_ways = False
+    intellij_ways = True
     exit_sign = False
     t = Texts()  # also: 'English' (default), 'pt-br'
     moving, against = None, None

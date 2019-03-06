@@ -132,6 +132,7 @@ class Comparing:
     def exit_signed(self):
         return self._quit_signal
 
+
 if __name__ == '__main__':
     to_do_list = ['8', '4', '7', '5', '2', '0']
     done_list = ['1', '3', '6', '9']
