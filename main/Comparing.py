@@ -1,3 +1,5 @@
+""" This is Controller's main algorithm """
+
 from multiOsHelpers.get_user_input import *
 from Configs.UserActions import userActions
 

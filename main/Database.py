@@ -1,5 +1,7 @@
-from Configs.UserActions import userActions, possible_answers
-from DB_Lists_text import FileDB
+""" This is Model of MVC """
+
+from Configs.UserActions import userActions
+from Configs.DB_Lists_text import FileDB
 
 
 class Database:

@@ -1,4 +1,4 @@
-from Database import Database
+from main.Database import Database
 
 
 class Singleton:

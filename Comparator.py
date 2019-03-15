@@ -1,13 +1,11 @@
-""" this is both V & C (View and Controller) of Comparator MVC, Model is @ Database """
+""" this is View of Comparator MVC """
 from Configs.internationalizable_texts import Texts
-
 from Configs.UserActions import userActions, possible_answers
-from Singleton import Singleton
 from multiOsHelpers.get_user_input import *
-from Comparing import Comparing  # TODO: implement coupling
+from main.Controller import Controller
 
 
-class Comparator(Singleton):
+class Comparator:
     """    Comparator serves a user with a process to order and/or rank a list of items
     User/front-end: I/O on rank per item compared
     User options: I/O item @ work + manage lists, items and axis + get / backup data and results
@@ -23,50 +21,8 @@ class Comparator(Singleton):
     """
 
     def __init__(self, new_list=None, partial_ordered_list=None):
-        """ first: prepare database. if not found: ask for first list
-            second: if work ongoing found: offer to continue or create new list (main options)
-            third, offer full options: continue, backup/import, manage and change lists, results or items and axis
-            +++
-            some behind the scene work , then present options and
-        separate front-ends: tty/terminal/CLI or Kivy TODO: kivy front end """
-        Singleton.__init__(self)  # keep Singleton functionality intact
-        #  TODO: check -- may be unneeded if Database already acts as should
-
-        self.database = Singleton.database()
-        self.comparing = Comparing(new_list, partial_ordered_list)
+        self.controller = Controller(new_list, partial_ordered_list)
         self.texts = Texts()  # also: 'English' (default), 'pt-br'
-
-        self.intellij_ways = False
-        self.exit_sign = False
-        self.user_input = None
-        # self.database.sanitize_parameters(method='init')  # unnecessary?
-        # self.new_list_options()  # TODO: if user wants instead of step-ping in
-
-    # def do_step(self):  # no need to separate from __init__
-        if self.list_completed():
-            self.__quit()  # TODO: maybe better to present options to new list, view results etc.
-
-        self.user_input = userActions.ERROR  # always reset to avoid looping with first answer
-
-        while self.user_input in (userActions.ERROR, userActions.GROUP):
-            if self.user_input == userActions.GROUP:
-                groups_available = None  # TODO: get groups list (trash in here too)
-                if groups_available is None:
-                    new_group = self.request_user_input_long('Enter new group (or tag) for item ' + self.moving)
-                    self.database.group(new_group, [self.moving])
-                else:
-                    self.database.group(self.group_select(), [self.moving])
-
-            while not self.comparing.exit_signed():
-                self.present_work_step()
-
-        if self.user_input == userActions.QUIT:
-            self.__quit()
-        else:
-            self.comparing.do_step(type_='manual', answer=self.user_input)  # TODO: DOING NOW
-
-        # print(self.texts.put('COMMAND', self.user_input))
-        # self.database.sanitize_parameters(method='Full')
 
     def present_work_step(self):
         """ present options for user to
@@ -144,19 +100,8 @@ class Comparator(Singleton):
     def get_1x1_db(self):
         return self.comparing.get_1x1_db()
 
-    def group_select(self):
-        pass
-
-    def list_completed(self):
-        return False  # TODO: check if list is fully (or enough*) ranked. *maybe at another func?
-
     def exit_signed(self):
         return self.exit_sign
-
-    def __quit(self):
-        self.exit_sign = True
-        self.database.show_results()
-        # exit()  # TODO: clean up and tidy database etc.
 
 
 if __name__ == '__main__':
