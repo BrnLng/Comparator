@@ -33,11 +33,12 @@ class Controller(Singleton):
         while self.user_input in (userActions.ERROR, userActions.GROUP):
             if self.user_input == userActions.GROUP:
                 groups_available = None  # TODO: get groups list (trash in here too)
+                moving_item = self.comparing.item_moving()
                 if groups_available is None:
-                    new_group = self.request_user_input_long('Enter new group (or tag) for item ' + self.moving)
-                    self.database.group(new_group, [self.moving])
+                    new_group = self.request_user_input_long('Enter new group (or tag) for item ' + moving_item)
+                    self.database.group(new_group, [moving_item])
                 else:
-                    self.database.group(self.group_select(), [self.moving])
+                    self.database.group(self.group_select(), [moving_item])
 
             while not self.comparing.exit_signed():
                 self.present_work_step()
