@@ -48,7 +48,8 @@ class Controller(Singleton):
         else:
             self.comparing.do_step(type_='manual', answer=self.user_input)  # TODO: DOING NOW
 
-    def present_work_step(self):
+    # @staticmethod  # if used needs no self as argument
+    def present_work_step(self):  # kDoing
         print("at new place that should not be here")
         quit()
 
